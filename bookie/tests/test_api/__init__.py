@@ -1,4 +1,7 @@
 """Test that we're meeting delicious API specifications"""
+# Need to create a new renderer that wraps the jsonp renderer and adds these
+# heads to all responses. Then the api needs to be adjusted to use this new
+# renderer type vs jsonp.
 import logging
 import json
 import transaction
@@ -117,6 +120,20 @@ class BookieAPITest(unittest.TestCase):
             "Should have a location result: " + res.body)
         ok_('description": "Bookie"' in res.body,
             "Should have Bookie in description: " + res.body)
+
+    def test_add_bookmark_missing_url(self):
+        """When missing information we get an error response."""
+        res = DBSession.execute(
+            "SELECT api_key FROM users WHERE username = 'admin'").fetchone()
+        key = res['api_key']
+
+        res = self.testapp.post(str('/api/v1/admin/bmark?api_key={0}'.format(key)),
+                                params={},
+                                status=400)
+
+        data = json.loads(res.body)
+        ok_('error' in data)
+        eq_(data['error'], 'Bad Request: No url provided')
 
     def test_bookmark_fetch(self):
         """Test that we can get a bookmark and it's details"""
